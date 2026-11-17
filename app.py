@@ -27,18 +27,12 @@ else:  # 윈도우(Windows) 환경인 경우
 
 plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
 
-# 페이지 기본 설정
-st.set_page_config(
-    page_title="의료·돌봄 및 에너지 시계열 기반 위기가구 조기 경보 대시보드",
-    page_icon="🚨",
-    layout="wide",
-)
-
 # 한글 폰트 설정 (윈도우: Malgun Gothic)
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
-
+# CartoDB API Key 설정
+CARTODB_API_KEY = "cb1_55g6_1_88ffc32d9c064d69a43b4508"
 
 # 서울 25개 자치구 중심 위경도 좌표 (공통 사용)
 SEOUL_GU_COORDS = {
@@ -464,6 +458,7 @@ with tab2:
         col_map, col_tbl = st.columns([1.4, 1])
 
         with col_map:
+            positron_tile = xyz.CartoDB.Positron(apikey=CARTODB_API_KEY)
             m = folium.Map(
                 location=[36.3, 127.8],
                 zoom_start=7,
@@ -717,7 +712,7 @@ with tab5:
 
         sub_dist = df_chr_dist[df_chr_dist["질환명"] == target_disease].copy()
 
-       
+        positron_seoul = xyz.CartoDB.Positron(apikey=CARTODB_API_KEY)
         m_seoul = folium.Map(
             location=[37.5665, 126.9780],
             zoom_start=11,
@@ -801,7 +796,7 @@ with tab6:
             horizontal=True,
         )
 
-        
+        positron_energy = xyz.CartoDB.Positron(apikey=CARTODB_API_KEY)
         m_energy = folium.Map(
             location=[37.5665, 126.9780],
             zoom_start=11,
