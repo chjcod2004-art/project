@@ -9,6 +9,24 @@ import streamlit as st
 import xyzservices.providers as xyz
 from streamlit_folium import st_folium
 
+import os
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+# --- 클라우드/로컬 환경 대응 한글 폰트 자동 설정 ---
+if os.name == 'posix':  # Streamlit Cloud (Linux) 환경인 경우
+    # 리눅스 시스템에 나눔고딕이 있는지 확인하고 설정
+    font_path = '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
+    if os.path.exists(font_path):
+        font_name = fm.FontProperties(fname=font_path).get_name()
+        plt.rcParams['font.family'] = font_name
+    else:
+        plt.rcParams['font.family'] = 'DejaVu Sans'  # 대체 폰트
+else:  # 윈도우(Windows) 환경인 경우
+    plt.rcParams['font.family'] = 'Malgun Gothic'
+
+plt.rcParams['axes.unicode_minus'] = False  # 마이너스 기호 깨짐 방지
+
 # 페이지 기본 설정
 st.set_page_config(
     page_title="의료·돌봄 및 에너지 시계열 기반 위기가구 조기 경보 대시보드",
