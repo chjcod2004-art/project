@@ -38,8 +38,7 @@ st.set_page_config(
 plt.rcParams["font.family"] = "Malgun Gothic"
 plt.rcParams["axes.unicode_minus"] = False
 
-# CartoDB API Key 설정
-CARTODB_API_KEY = "cb1_55g6_1_88ffc32d9c064d69a43b4508"
+
 
 # 서울 25개 자치구 중심 위경도 좌표 (공통 사용)
 SEOUL_GU_COORDS = {
