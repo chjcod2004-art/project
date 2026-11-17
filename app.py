@@ -464,7 +464,6 @@ with tab2:
         col_map, col_tbl = st.columns([1.4, 1])
 
         with col_map:
-            positron_tile = xyz.CartoDB.Positron(apikey=CARTODB_API_KEY)
             m = folium.Map(
                 location=[36.3, 127.8],
                 zoom_start=7,
@@ -718,7 +717,7 @@ with tab5:
 
         sub_dist = df_chr_dist[df_chr_dist["질환명"] == target_disease].copy()
 
-        positron_seoul = xyz.CartoDB.Positron(apikey=CARTODB_API_KEY)
+       
         m_seoul = folium.Map(
             location=[37.5665, 126.9780],
             zoom_start=11,
@@ -802,7 +801,7 @@ with tab6:
             horizontal=True,
         )
 
-        positron_energy = xyz.CartoDB.Positron(apikey=CARTODB_API_KEY)
+        
         m_energy = folium.Map(
             location=[37.5665, 126.9780],
             zoom_start=11,
