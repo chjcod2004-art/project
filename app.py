@@ -247,21 +247,90 @@ with tab2:
             st.dataframe(sido_agg.sort_values(by="PATIENT_CNT", ascending=False), use_container_width=True, height=460)
 
 with tab3:
-    st.subheader("👥 연령대별 외래 처방 안정성(변동계수 CV) 및 성별 분포")
-    # 기존 CV 분석 로직 유지 (지면 관계상 상세 차트는 생략 없이 구현됨)
-    st.info("팀원 분의 기존 연령대 분석 로직이 정상 동작합니다.")
+    st.subheader("👥 연령대별 처방 안정성 및 성별 분포")
+    if filtered_df.empty:
+        st.info("의약품 데이터가 없거나 필터 조건에 해당하는 데이터가 없습니다.")
+    else:
+        age_df = filtered_df.copy()
+        age_df["AGE_G"] = age_df["AGE_G"].astype(str)
+        age_summary = age_df.groupby("AGE_G", as_index=False).agg(환자수=("PATIENT_CNT", "sum"), 처방건수=("PRSCRPTN_TNDN_CNT", "sum"))
+        monthly_age = age_df.groupby(["AGE_G", "STD_YYYYMM"], as_index=False)["PRSCRPTN_TNDN_CNT"].sum()
+        cv = monthly_age.groupby("AGE_G")["PRSCRPTN_TNDN_CNT"].agg(["mean", "std"]).reset_index()
+        cv["변동계수(%)"] = (cv["std"].fillna(0) / cv["mean"].replace(0, np.nan) * 100).fillna(0)
+        gender_summary = age_df.groupby("SEX_TYPE", as_index=False)["PATIENT_CNT"].sum()
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("#### 연령대별 환자 수와 처방 건수")
+            st.plotly_chart(px.bar(age_summary, x="AGE_G", y=["환자수", "처방건수"], barmode="group"), use_container_width=True)
+        with c2:
+            st.markdown("#### 연령대별 월 처방 변동계수")
+            st.plotly_chart(px.bar(cv, x="AGE_G", y="변동계수(%)", color="변동계수(%)", color_continuous_scale="Blues"), use_container_width=True)
+        c3, c4 = st.columns(2)
+        with c3:
+            st.markdown("#### 성별 환자 분포")
+            st.plotly_chart(px.pie(gender_summary, names="SEX_TYPE", values="PATIENT_CNT", hole=0.4), use_container_width=True)
+        with c4:
+            st.markdown("#### 변동계수 표")
+            st.dataframe(cv.rename(columns={"AGE_G": "연령대", "mean": "월평균 처방건수", "std": "월별 표준편차"}), use_container_width=True)
 
 with tab4:
-    st.subheader("🏥 시군구별 진료과목별 내원 주기 규칙성 검증")
-    st.info("팀원 분의 기존 진료과목 분석 로직이 정상 동작합니다.")
+    st.subheader("🏥 진료과목별 진료량 및 월별 추이")
+    if df_dept.empty:
+        st.info("진료과목 데이터 파일을 찾지 못했거나 읽을 수 없습니다.")
+    else:
+        dept_options = sorted(df_dept["진료과목명"].dropna().unique().tolist())
+        selected_depts = st.multiselect("표시할 진료과목", dept_options, default=dept_options[:5], key="dept_select")
+        dept_view = df_dept[df_dept["진료과목명"].isin(selected_depts)]
+        if not dept_view.empty:
+            dept_total = dept_view.groupby("진료과목명", as_index=False)[["진료인원(명)", "진료건수(건)"]].sum().sort_values("진료건수(건)", ascending=False)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("#### 진료과목별 진료건수")
+                st.plotly_chart(px.bar(dept_total, x="진료과목명", y="진료건수(건)", color="진료과목명"), use_container_width=True)
+            with c2:
+                st.markdown("#### 월별 진료인원 추이")
+                dept_month = dept_view.groupby(["년월", "진료과목명"], as_index=False)["진료인원(명)"].sum()
+                st.plotly_chart(px.line(dept_month, x="년월", y="진료인원(명)", color="진료과목명", markers=True), use_container_width=True)
+            st.dataframe(dept_total, use_container_width=True)
 
 with tab5:
-    st.subheader("🩺 질환별 평균 처방주기 및 자치구별 CartoDB 지도")
-    st.info("팀원 분의 기존 만성질환 분석 로직이 정상 동작합니다.")
+    st.subheader("🩺 만성질환별 진료 현황 및 자치구 비교")
+    if df_chr.empty:
+        st.info("만성질환 데이터 파일을 찾지 못했거나 읽을 수 없습니다.")
+    else:
+        chr_view = df_chr.copy()
+        chr_view["자치구"] = chr_view["자치구"].astype(str).str.replace(" ", "", regex=False)
+        diseases = sorted(chr_view["질환명"].dropna().unique().tolist())
+        selected_disease = st.selectbox("분석할 질환", diseases, key="chronic_disease")
+        one_disease = chr_view[chr_view["질환명"] == selected_disease].copy()
+        one_disease = one_disease[one_disease["자치구"].str.endswith("구")].drop_duplicates(subset=["자치구"])
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("#### 자치구별 진료실인원")
+            st.plotly_chart(px.bar(one_disease, x="자치구", y="진료실인원_2024", color="진료실인원_2024", color_continuous_scale="Oranges"), use_container_width=True)
+        with c2:
+            st.markdown("#### 자치구별 1인당 연간 내원일수")
+            st.plotly_chart(px.bar(one_disease, x="자치구", y="1인당_연간내원일수", color="1인당_연간내원일수", color_continuous_scale="Purples"), use_container_width=True)
+        st.dataframe(one_disease[["자치구", "질환명", "진료실인원_2024", "진료비_2024", "1인당_연간내원일수", "1회내원당_평균처방일수"]], use_container_width=True)
 
 with tab6:
-    st.subheader("⚡ [대규모 시뮬레이션 통합] 전력·도시가스 급감 가구 탐지 및 CartoDB 관제 지도")
-    st.info("팀원 분의 전력/가스 시뮬레이션 지도 로직이 정상 동작합니다.")
+    st.subheader("⚡ 전력·도시가스 급감 가구 시뮬레이션")
+    st.caption("가구별 실측 자료가 아닌, 자치구별 기준 사용량으로 생성한 시뮬레이션입니다.")
+    if df_households.empty:
+        st.info("시뮬레이션 결과가 없습니다.")
+    else:
+        energy_gu = df_households.groupby("시군구", as_index=False).agg(전체가구=("household_id", "count"), 위험가구=("risk_status", lambda x: (x == "위험 (Red)").sum()), 주의가구=("risk_status", lambda x: (x == "주의 (Yellow)").sum()), 평균전력급감률=("power_drop_rate", "mean"), 평균가스급감률=("gas_drop_rate", "mean"))
+        energy_long = energy_gu.melt(id_vars="시군구", value_vars=["위험가구", "주의가구"], var_name="위험등급", value_name="가구수")
+        energy_rates = energy_gu.melt(id_vars="시군구", value_vars=["평균전력급감률", "평균가스급감률"], var_name="항목", value_name="급감률")
+        energy_rates["급감률(%)"] = energy_rates["급감률"] * 100
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("#### 자치구별 위험·주의 가구")
+            st.plotly_chart(px.bar(energy_long, x="시군구", y="가구수", color="위험등급", barmode="stack", color_discrete_map={"위험가구": "#dc2626", "주의가구": "#f59e0b"}), use_container_width=True)
+        with c2:
+            st.markdown("#### 자치구별 에너지 급감률")
+            st.plotly_chart(px.line(energy_rates, x="시군구", y="급감률(%)", color="항목", markers=True), use_container_width=True)
+        st.dataframe(energy_gu.sort_values("위험가구", ascending=False).head(10), use_container_width=True)
 
 
 # ==========================================
