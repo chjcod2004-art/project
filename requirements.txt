@@ -7,3 +7,4 @@ streamlit-folium
 xyzservices
 numpy
 plotly.express
+openpyxl
